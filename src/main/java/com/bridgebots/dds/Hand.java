@@ -41,4 +41,8 @@ public class Hand {
     public void makePlay(Card cardPlayed) {
         ranksBySuit.get(cardPlayed.suit).remove(cardPlayed.rank);
     }
+
+    public void undoPlay(Card card){
+        ranksBySuit.get(card.suit).add(card.rank);
+    }
 }

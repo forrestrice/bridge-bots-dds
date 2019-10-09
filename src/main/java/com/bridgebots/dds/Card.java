@@ -13,6 +13,10 @@ public class Card {
         this.rank = rank;
     }
 
+    public String toString(){
+        return rank.name() + " of " + suit.name();
+    }
+
     private static final List<Card> DECK = buildDeck();
 
     private static List<Card> buildDeck(){
