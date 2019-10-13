@@ -49,4 +49,46 @@ class SimpleSolverTest {
         assertEquals(3, solver.solve(onside, TrumpSuit.SPADES, Direction.NORTH));
     }
 
+    @Test
+    @Disabled //probably never completes
+    void testEightCards(){
+        SimpleSolver solver = new SimpleSolver();
+        Hand northHand = new Hand("", "", "A K 6 5 4", "A 10 7");
+        Hand southHand = new Hand("", "A K Q J 10 9 8", "", "2");
+        Hand eastHand = new Hand("3 2", "", "Q J 10 9 8", "K");
+        Hand westHand = new Hand("A K Q", "4 3 2", "2", "3");
+
+        Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
+        assertEquals(5, solver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
+    }
+
+    @Test
+    @Disabled //probably never completes
+    void testSixCards(){
+        SimpleSolver solver = new SimpleSolver();
+        Hand northHand = new Hand("", "", "A K 6 5", "A 10");
+        Hand southHand = new Hand("", "A K Q J 10", "", "2");
+        Hand eastHand = new Hand("3", "", "Q J 10 9", "K");
+        Hand westHand = new Hand("A K", "4 3", "2", "3");
+
+        Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
+        assertEquals(4, solver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
+    }
+
+    @Test
+    @Disabled //probably never completes
+    void testFiveCards(){
+        SimpleSolver solver = new SimpleSolver();
+        Hand northHand = new Hand("", "", "A K 6", "A 10");
+        Hand southHand = new Hand("", "A K Q J", "", "2");
+        Hand eastHand = new Hand("3", "", "Q J 10", "K");
+        Hand westHand = new Hand("A K", "4 3", "2", "");
+
+        Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
+        assertEquals(4, solver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
+        assertEquals(4, solver.solve(deal, TrumpSuit.SPADES, Direction.SOUTH));
+        assertEquals(1, solver.solve(deal, TrumpSuit.SPADES, Direction.EAST));
+        assertEquals(1, solver.solve(deal, TrumpSuit.SPADES, Direction.WEST));
+    }
+
 }
