@@ -1,6 +1,7 @@
 package com.bridgebots.dds;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Board {
 
@@ -10,11 +11,11 @@ public class Board {
     private final Direction declarer;
     private int nsTricks = 0;
     private int ewTricks = 0;
-    //private final Comparator<Card> cardComparator;
     private Direction lead;
     private List<Card> currentTrick;
     private final List<Card> history = new ArrayList<>(52);
     private final List<Direction> trickLeaderHistory = new ArrayList<>(13);
+    private final BitSet playedCards;
 
     public static Board of(Hand north, Hand south, Hand east, Hand west, TrumpSuit trumpSuit, Direction lead) {
         Map<Direction, Hand> hands = new EnumMap<>(Direction.class);
@@ -25,7 +26,7 @@ public class Board {
         return new Board(hands, trumpSuit, lead, new ArrayList<>(3), lead.previous());
     }
 
-    public static Board forDeal(Deal deal, TrumpSuit trumpSuit, Direction lead){
+    public static Board forDeal(Deal deal, TrumpSuit trumpSuit, Direction lead) {
         return new Board(deal.getHands(), trumpSuit, lead, new ArrayList<>(3), lead.previous());
     }
 
@@ -36,6 +37,13 @@ public class Board {
         this.lead = lead;
         this.currentTrick = currentTrick;
         this.declarer = declarer;
+        //If this not a complete deal mark missing cards as played
+        this.playedCards = new BitSet(52);
+        playedCards.set(0, 52);
+        hands.values().stream()
+                .map(Hand::allCards)
+                .flatMap(Collection::stream)
+                .forEach(c -> playedCards.set(c.index, false));
     }
 
     public List<Card> nextPlays() {
@@ -48,9 +56,37 @@ public class Board {
         }
     }
 
+    public List<Card> restrictedNextPlays() {
+        List<Card> allPlays = nextPlays();
+        List<Card> restrictedPlays = new ArrayList<>();
+        for (int i = 0; i < allPlays.size() - 1; i++) {
+            Card play = allPlays.get(i);
+            Card nextPlay = allPlays.get(i + 1);
+            //Determine if this card and the next card are equivalent plays
+            if (play.suit == nextPlay.suit) {
+                boolean touching = true;
+                for (int j = play.index + 1; j < nextPlay.index; j++) {
+                    if (!playedCards.get(j)) {
+                        touching = false;
+                        break;
+                    }
+                }
+                if (!touching) {
+                    restrictedPlays.add(play);
+                }
+            } else {
+                restrictedPlays.add(play);
+            }
+        }
+        //We can always play the last card since it is the highest of its suit
+        restrictedPlays.add(allPlays.get(allPlays.size() - 1));
+        return restrictedPlays;
+    }
+
     public void makePlay(Card cardPlayed) {
         history.add(cardPlayed);
         currentTrick.add(cardPlayed);
+        playedCards.set(cardPlayed.index);
         hands.get(lead).makePlay(cardPlayed);
         if (currentTrick.size() == 4) {
             completeTrick();
@@ -59,15 +95,15 @@ public class Board {
         }
     }
 
-    public Card undoPlay(){
+    public Card undoPlay() {
         int lastMoveIndex = history.size() - 1;
-        if(currentTrick.isEmpty()){
-            if(lead == Direction.NORTH || lead == Direction.SOUTH){
+        if (currentTrick.isEmpty()) {
+            if (lead == Direction.NORTH || lead == Direction.SOUTH) {
                 nsTricks--;
             } else {
                 ewTricks--;
             }
-            int trickIndex = trickLeaderHistory.size() -1;
+            int trickIndex = trickLeaderHistory.size() - 1;
             lead = trickLeaderHistory.remove(trickIndex).previous();
             currentTrick = new ArrayList<>(history.subList(lastMoveIndex - 3, lastMoveIndex));
         } else {
@@ -75,6 +111,7 @@ public class Board {
             lead = lead.previous();
         }
         Card undone = history.remove(lastMoveIndex);
+        playedCards.clear(undone.index);
         hands.get(lead).undoPlay(undone);
         return undone;
     }
@@ -98,7 +135,7 @@ public class Board {
         return ewTricks;
     }
 
-    public int getDeclarerTricks(){
+    public int getDeclarerTricks() {
         return (declarer == Direction.NORTH || declarer == Direction.SOUTH) ? nsTricks : ewTricks;
     }
 

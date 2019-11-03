@@ -5,9 +5,21 @@ import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.List;
+import java.util.function.Function;
+
 public class AlphaBetaSolver implements Solver {
     private static final Logger LOG = LogManager.getLogger();
+    private final Function<Board, List<Card>> cardSelectionFunction;
     private long nodesUsed = 0;
+
+    public AlphaBetaSolver(){
+        this(Board::nextPlays);
+    }
+
+    public AlphaBetaSolver(Function<Board, List<Card>> cardSelectionFunction){
+        this.cardSelectionFunction = cardSelectionFunction;
+    }
 
     @Override
     public int solve(Deal deal, TrumpSuit trumpSuit, Direction declarer) {
@@ -21,7 +33,7 @@ public class AlphaBetaSolver implements Solver {
 
     private int minMax(Board board, int depth, int alpha, int beta) {
         nodesUsed++;
-        if(depth < 3){
+        if(depth < 20){
             LOG.debug("depth={}, nodesUsed={}", depth, nodesUsed);
         }
         if (board.nextPlays().isEmpty()) {
@@ -29,7 +41,7 @@ public class AlphaBetaSolver implements Solver {
         }
         if (board.offenseOnLead()) {
             int value = -1;
-            for (Card card : board.nextPlays()) {
+            for (Card card : cardSelectionFunction.apply(board)) {
                 board.makePlay(card);
 
                 value = Math.max(value, minMax(board, depth +1, alpha, beta));
@@ -42,7 +54,7 @@ public class AlphaBetaSolver implements Solver {
             return value;
         } else {
             int value = 14;
-            for (Card card : board.nextPlays()) {
+            for (Card card : cardSelectionFunction.apply(board)) {
                 board.makePlay(card);
                 value = Math.min(value, minMax(board, depth + 1, alpha, beta));
                 board.undoPlay();
