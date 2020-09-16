@@ -1,6 +1,5 @@
 package com.bridgebots.dds;
 
-
 import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -8,16 +7,16 @@ import org.apache.logging.log4j.Logger;
 import java.util.List;
 import java.util.function.Function;
 
-public class AlphaBetaSolver implements Solver {
+public class ZeroWindowSolver implements Solver {
     private static final Logger LOG = LogManager.getLogger();
     private final Function<Board, List<Card>> cardSelectionFunction;
     private long nodesUsed = 0;
 
-    public AlphaBetaSolver(){
+    public ZeroWindowSolver(){
         this(Board::nextPlays);
     }
 
-    public AlphaBetaSolver(Function<Board, List<Card>> cardSelectionFunction){
+    public ZeroWindowSolver(Function<Board, List<Card>> cardSelectionFunction){
         this.cardSelectionFunction = cardSelectionFunction;
     }
 
@@ -33,7 +32,7 @@ public class AlphaBetaSolver implements Solver {
 
     private int minMax(Board board, int depth, int alpha, int beta) {
         nodesUsed++;
-        if(depth < 2){
+        if(depth < 20){
             LOG.debug("depth={}, nodesUsed={}", depth, nodesUsed);
         }
         if (board.nextPlays().isEmpty()) {

@@ -32,6 +32,7 @@ public enum Rank {
             .put("8", Rank.EIGHT)
             .put("9", Rank.NINE)
             .put("10", Rank.TEN)
+            .put("T", Rank.TEN)
             .put("J", Rank.JACK)
             .put("Q", Rank.QUEEN)
             .put("K", Rank.KING)

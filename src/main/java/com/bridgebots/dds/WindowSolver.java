@@ -1,6 +1,5 @@
 package com.bridgebots.dds;
 
-
 import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -8,16 +7,16 @@ import org.apache.logging.log4j.Logger;
 import java.util.List;
 import java.util.function.Function;
 
-public class AlphaBetaSolver implements Solver {
+public class WindowSolver implements Solver {
     private static final Logger LOG = LogManager.getLogger();
-    private final Function<Board, List<Card>> cardSelectionFunction;
     private long nodesUsed = 0;
+    private final Function<Board, List<Card>> cardSelectionFunction;
 
-    public AlphaBetaSolver(){
+    public WindowSolver() {
         this(Board::nextPlays);
     }
 
-    public AlphaBetaSolver(Function<Board, List<Card>> cardSelectionFunction){
+    public WindowSolver(Function<Board, List<Card>> cardSelectionFunction) {
         this.cardSelectionFunction = cardSelectionFunction;
     }
 
@@ -26,14 +25,30 @@ public class AlphaBetaSolver implements Solver {
         nodesUsed = 0;
         Board board = Board.forDeal(deal, trumpSuit, declarer.next());
         Stopwatch timer = Stopwatch.createStarted();
-        int result = minMax(board, 0, -1, 14);
-        LOG.info("Computed minMax result {} with {} nodes in {}", result, nodesUsed, timer.stop());
-        return result;
+
+        int upperBound = board.nextPlays().size();
+        int lowerBound = 0;
+        while (lowerBound != upperBound) {
+            int target = chooseTarget(lowerBound, upperBound);
+            LOG.info("Window solving for lowerBound {}, upperBound {}, target {}", lowerBound, upperBound, target);
+            int windowResult = alphaBetaSolve(board, 0, target - 1, target);
+            if (windowResult >= target) {
+                lowerBound = target;
+            } else {
+                upperBound = target - 1;
+            }
+        }
+        LOG.info("Computed window result {} with {} nodes in {}", lowerBound, nodesUsed, timer.stop());
+        return lowerBound;
     }
 
-    private int minMax(Board board, int depth, int alpha, int beta) {
+    private int chooseTarget(int lowerBound, int upperBound) {
+        return lowerBound + Math.max(1, (upperBound - lowerBound) / 2);
+    }
+
+    private int alphaBetaSolve(Board board, int depth, int alpha, int beta) {
         nodesUsed++;
-        if(depth < 2){
+        if (depth < 2) {
             LOG.debug("depth={}, nodesUsed={}", depth, nodesUsed);
         }
         if (board.nextPlays().isEmpty()) {
@@ -43,11 +58,10 @@ public class AlphaBetaSolver implements Solver {
             int value = -1;
             for (Card card : cardSelectionFunction.apply(board)) {
                 board.makePlay(card);
-
-                value = Math.max(value, minMax(board, depth +1, alpha, beta));
+                value = Math.max(value, alphaBetaSolve(board, depth + 1, alpha, beta));
                 board.undoPlay();
                 alpha = Math.max(alpha, value);
-                if (alpha >= beta){
+                if (alpha >= beta) {
                     break;
                 }
             }
@@ -56,14 +70,16 @@ public class AlphaBetaSolver implements Solver {
             int value = 14;
             for (Card card : cardSelectionFunction.apply(board)) {
                 board.makePlay(card);
-                value = Math.min(value, minMax(board, depth + 1, alpha, beta));
+                value = Math.min(value, alphaBetaSolve(board, depth + 1, alpha, beta));
                 board.undoPlay();
                 beta = Math.min(beta, value);
-                if (alpha >= beta){
+                if (alpha >= beta) {
                     break;
                 }
             }
             return value;
         }
     }
+
+
 }
