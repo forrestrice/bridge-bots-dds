@@ -9,10 +9,10 @@ public class BoardTest {
 
     @Test
     public void nextMoves() {
-        Hand northHand = new ListHand("K 2", "", "", "");
-        Hand southHand = new ListHand("Q", "3", "", "");
-        Hand eastHand = new ListHand("A 4", "", "", "");
-        Hand westHand = new ListHand("J 5", "", "", "");
+        Hand northHand = new BitSetHand("K 2", "", "", "");
+        Hand southHand = new BitSetHand("Q", "3", "", "");
+        Hand eastHand = new BitSetHand("A 4", "", "", "");
+        Hand westHand = new BitSetHand("J 5", "", "", "");
 
         Board board = Board.of(northHand, southHand, eastHand, westHand, TrumpSuit.CLUBS, Direction.NORTH);
 

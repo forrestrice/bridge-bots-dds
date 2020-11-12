@@ -10,10 +10,10 @@ class AlphaBetaSolverTest {
     @Test
     void testFiveCards(){
         AlphaBetaSolver solver = new AlphaBetaSolver();
-        Hand northHand = new ListHand("", "", "A K 6", "A 10");
-        Hand southHand = new ListHand("", "A K Q J", "", "2");
-        Hand eastHand = new ListHand("3", "", "Q J 10", "K");
-        Hand westHand = new ListHand("A K", "4 3", "2", "");
+        Hand northHand = new BitSetHand("", "", "A K 6", "A 10");
+        Hand southHand = new BitSetHand("", "A K Q J", "", "2");
+        Hand eastHand = new BitSetHand("3", "", "Q J 10", "K");
+        Hand westHand = new BitSetHand("A K", "4 3", "2", "");
 
         Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
         assertEquals(4, solver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
@@ -25,10 +25,10 @@ class AlphaBetaSolverTest {
     @Test
     void testSixCards(){
         AlphaBetaSolver solver = new AlphaBetaSolver();
-        Hand northHand = new ListHand("", "", "A K 6 5", "A 10");
-        Hand southHand = new ListHand("", "A K Q J 10", "", "2");
-        Hand eastHand = new ListHand("3", "", "Q J 10 9", "K");
-        Hand westHand = new ListHand("A K", "4 3", "2", "3");
+        Hand northHand = new BitSetHand("", "", "A K 6 5", "A 10");
+        Hand southHand = new BitSetHand("", "A K Q J 10", "", "2");
+        Hand eastHand = new BitSetHand("3", "", "Q J 10 9", "K");
+        Hand westHand = new BitSetHand("A K", "4 3", "2", "3");
 
         Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
         assertEquals(4, solver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
@@ -38,10 +38,10 @@ class AlphaBetaSolverTest {
     @Disabled
     void testSevenCards(){
         AlphaBetaSolver solver = new AlphaBetaSolver();
-        Hand northHand = new ListHand("", "", "A K 7 6 5", "A 10");
-        Hand southHand = new ListHand("", "A K Q J 10 9", "", "2");
-        Hand eastHand = new ListHand("3", "", "Q J 10 9", "K 4");
-        Hand westHand = new ListHand("A K", "4 3", "3 2", "3");
+        Hand northHand = new BitSetHand("", "", "A K 7 6 5", "A 10");
+        Hand southHand = new BitSetHand("", "A K Q J 10 9", "", "2");
+        Hand eastHand = new BitSetHand("3", "", "Q J 10 9", "K 4");
+        Hand westHand = new BitSetHand("A K", "4 3", "3 2", "3");
 
         Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
         assertEquals(4, solver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));

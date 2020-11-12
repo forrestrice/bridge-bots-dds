@@ -1,5 +1,6 @@
 package com.bridgebots.dds;
 
+
 import java.util.*;
 
 public class Board {
@@ -8,6 +9,7 @@ public class Board {
     private final TrumpSuit trumpSuit;
     private final TrickEvaluator trickEvaluator;
     private final Direction declarer;
+    private int tricksAvailable;
     private int nsTricks = 0;
     private int ewTricks = 0;
     private Direction lead;
@@ -43,6 +45,7 @@ public class Board {
                 .map(Hand::allCards)
                 .flatMap(Collection::stream)
                 .forEach(c -> playedCards.set(c.index, false));
+        this.tricksAvailable = hands.get(lead).allCards().size();
     }
 
     public List<Card> nextPlays() {
@@ -102,6 +105,7 @@ public class Board {
             } else {
                 ewTricks--;
             }
+            tricksAvailable++;
             int trickIndex = trickLeaderHistory.size() - 1;
             lead = trickLeaderHistory.remove(trickIndex).previous();
             currentTrick = new ArrayList<>(history.subList(lastMoveIndex - 3, lastMoveIndex));
@@ -123,6 +127,7 @@ public class Board {
         } else {
             ewTricks++;
         }
+        tricksAvailable--;
         currentTrick.clear();
     }
 
@@ -138,9 +143,42 @@ public class Board {
         return (declarer == Direction.NORTH || declarer == Direction.SOUTH) ? nsTricks : ewTricks;
     }
 
+    public int getTricks(Direction direction) {
+        return (direction == Direction.NORTH || direction == Direction.SOUTH) ? nsTricks : ewTricks;
+    }
+
     public boolean offenseOnLead() {
         return declarer == lead || declarer.partner() == lead;
     }
+
+    public boolean teamOnLead(Direction direction) {
+        return direction == lead || direction.partner() == lead;
+    }
+
+    public TrumpSuit getTrumpSuit() {
+        return trumpSuit;
+    }
+
+    public Direction getLead() {
+        return lead;
+    }
+
+    public Hand getHand(Direction direction) {
+        return hands.get(direction);
+    }
+
+    public BitSet getPlayedCards() {
+        return playedCards;
+    }
+
+    public List<Card> getCurrentTrick() {
+        return currentTrick;
+    }
+
+    public int getTricksAvailable(){
+        return tricksAvailable;
+    }
+
 
     private static class TrickEvaluator {
         private final Comparator<Card> cardComparator;
@@ -154,18 +192,14 @@ public class Board {
 
         private Direction computeTrickWinner(List<Card> trick, Direction lastDirection) {
             suitLed = trick.get(0).suit;
-            Card winner = null;
+            Card winner = trick.get(0);
             int offset = 1;
 
-            for (int index = 0; index < 4; index++) {
-                if (winner == null) {
-                    winner = trick.get(index);
-                } else {
-                    Card current = trick.get(index);
-                    if (cardComparator.compare(current, winner) > 0) {
-                        winner = current;
-                        offset = 1 + index;
-                    }
+            for (int index = 1; index < 4; index++) {
+                Card current = trick.get(index);
+                if (cardComparator.compare(current, winner) > 0) {
+                    winner = current;
+                    offset = 1 + index;
                 }
             }
             return lastDirection.offset(offset);

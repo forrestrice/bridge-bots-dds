@@ -48,6 +48,17 @@ public class BitSetHand implements Hand {
     }
 
     @Override
+    public List<Card> holding(Suit suit){
+        int suitOffset = suit.ordinal() * 13;
+        BitSet suitBitSet = bitSet.get(suitOffset, suitOffset + 13);
+        List<Card> holding = new ArrayList<>();
+        for (int i = suitBitSet.nextSetBit(0); i >= 0; i = suitBitSet.nextSetBit(i + 1)) {
+            holding.add(Card.ofIndex(i + suitOffset));
+        }
+        return holding;
+    }
+
+    @Override
     public void makePlay(Card cardPlayed) {
         bitSet.clear(cardPlayed.index);
     }

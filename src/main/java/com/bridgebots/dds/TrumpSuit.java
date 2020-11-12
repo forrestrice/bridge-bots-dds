@@ -7,7 +7,7 @@ public enum TrumpSuit {
     SPADES(Suit.SPADES),
     NO_TRUMP(null);
 
-    private final Suit suit;
+    public final Suit suit;
 
     TrumpSuit(Suit suit) {
         this.suit = suit;

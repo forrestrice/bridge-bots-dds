@@ -39,7 +39,7 @@ public enum Rank {
             .put("A", Rank.ACE)
             .build();
 
-    private final int rankScore;
+    public final int rankScore;
 
     Rank(int rankScore) {
         this.rankScore = rankScore;
@@ -47,5 +47,9 @@ public enum Rank {
 
     public static Rank parseRank(String rankString) {
         return RANK_STRINGS.get(rankString);
+    }
+
+    public static Rank fromScore(int score) {
+        return Rank.values()[score - 2];
     }
 }

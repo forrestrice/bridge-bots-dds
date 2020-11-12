@@ -7,17 +7,19 @@ import org.apache.logging.log4j.Logger;
 import java.util.List;
 import java.util.function.Function;
 
-public class WindowSolver implements Solver {
+public class QuicktricksWindowSolver implements Solver {
     private static final Logger LOG = LogManager.getLogger();
+    private final AlphaBetaQuicktricksEvaluator quicktricksEvaluator;
     private long nodesUsed = 0;
     private final Function<Board, List<Card>> cardSelectionFunction;
 
-    public WindowSolver() {
+    public QuicktricksWindowSolver() {
         this(Board::nextPlays);
     }
 
-    public WindowSolver(Function<Board, List<Card>> cardSelectionFunction) {
+    public QuicktricksWindowSolver(Function<Board, List<Card>> cardSelectionFunction) {
         this.cardSelectionFunction = cardSelectionFunction;
+        this.quicktricksEvaluator = new AlphaBetaQuicktricksEvaluator(cardSelectionFunction);
     }
 
     @Override
@@ -54,6 +56,22 @@ public class WindowSolver implements Solver {
         //TODO more efficient check
         if (board.nextPlays().isEmpty()) {
             return board.getDeclarerTricks();
+        }
+        if (board.getCurrentTrick().isEmpty()) {
+            //If offense is on lead, can they achieve the target through quicktricks. If not, continue full search
+            if (board.offenseOnLead()) {
+                int quicktricksResult = quicktricksEvaluator.leaderQuicktricks(board, alpha, beta);
+                if (quicktricksResult == beta) {
+                    return beta;
+                }
+            } else {
+                //If defense is on lead, can they prevent the target through quicktricks. If not, continue full search
+                int defenseTarget = (board.getTricksAvailable() - beta) + 1;
+                int defenseQuicktricksResult = quicktricksEvaluator.leaderQuicktricks(board, defenseTarget - 1, defenseTarget);
+                if (defenseQuicktricksResult == defenseTarget) {
+                    return alpha;
+                }
+            }
         }
         if (board.offenseOnLead()) {
             int value = -1;

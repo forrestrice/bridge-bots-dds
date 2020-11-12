@@ -7,6 +7,8 @@ public interface Hand {
 
     List<Card> legalCards(Suit suitLed);
 
+    List<Card> holding(Suit suit);
+
     void makePlay(Card cardPlayed);
 
     void undoPlay(Card card);

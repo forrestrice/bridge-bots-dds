@@ -23,6 +23,7 @@ public class SimpleSolver {
         if(depth < 3){
             LOG.debug("depth={}, nodesUsed={}", depth, nodesUsed);
         }
+        //TODO more efficient check
         if (board.nextPlays().isEmpty()) {
             return board.getDeclarerTricks();
         }

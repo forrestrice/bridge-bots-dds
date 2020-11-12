@@ -23,6 +23,7 @@ public class ListHand implements Hand {
         this(parseSuitString(clubs), parseSuitString(diamonds), parseSuitString(hearts), parseSuitString(spades));
     }
 
+    //TODO this is broken with restricted next plays - cards are returned in reverse order
     @Override
     public List<Card> allCards() {
         List<Card> allCards = new ArrayList<>();
@@ -30,6 +31,7 @@ public class ListHand implements Hand {
         return allCards;
     }
 
+    //TODO this is broken with restricted next plays - cards are returned in reverse order
     @Override
     public List<Card> legalCards(Suit suitLed) {
         List<Rank> followSuit = ranksBySuit.get(suitLed);
@@ -38,6 +40,11 @@ public class ListHand implements Hand {
         } else {
             return followSuit.stream().map(r -> Card.of(suitLed, r)).collect(Collectors.toList());
         }
+    }
+
+    @Override
+    public List<Card> holding(Suit suit) {
+        return  ranksBySuit.get(suit).stream().map(r -> Card.of(suit, r)).collect(Collectors.toList());
     }
 
     @Override

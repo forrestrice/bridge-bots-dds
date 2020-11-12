@@ -10,10 +10,10 @@ public class WindowSolverTest {
     void testFiveCards(){
         WindowSolver solver = new WindowSolver();
         AlphaBetaSolver abSolver = new AlphaBetaSolver();
-        Hand northHand = new ListHand("", "", "A K 6", "A 10");
-        Hand southHand = new ListHand("", "A K Q J", "", "2");
-        Hand eastHand = new ListHand("3", "", "Q J 10", "K");
-        Hand westHand = new ListHand("A K", "4 3", "2", "");
+        Hand northHand = new BitSetHand("", "", "A K 6", "A 10");
+        Hand southHand = new BitSetHand("", "A K Q J", "", "2");
+        Hand eastHand = new BitSetHand("3", "", "Q J 10", "K");
+        Hand westHand = new BitSetHand("A K", "4 3", "2", "");
 
         Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
         assertEquals(4, abSolver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
@@ -35,6 +35,7 @@ public class WindowSolverTest {
         Deal deal = new Deal(northHand, southHand, eastHand, westHand, Direction.WEST, true, true);
         assertEquals(4, alphaBetaSolver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
         assertEquals(4, windowSolver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
+        assertEquals(4, alphaBetaSolver.solve(deal, TrumpSuit.SPADES, Direction.NORTH));
     }
 
     @Test
