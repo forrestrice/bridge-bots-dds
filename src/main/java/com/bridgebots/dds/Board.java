@@ -1,9 +1,11 @@
 package com.bridgebots.dds;
 
 
+import java.io.Serializable;
 import java.util.*;
 
-public class Board {
+public class Board implements Serializable, Cloneable {
+    private static final long serialVersionUID = 1L;
 
     private final Map<Direction, Hand> hands;
     private final TrumpSuit trumpSuit;
@@ -12,11 +14,15 @@ public class Board {
     private int tricksAvailable;
     private int nsTricks = 0;
     private int ewTricks = 0;
+    private int cardsRemaining = 0;
     private Direction lead;
     private List<Card> currentTrick;
-    private final List<Card> history = new ArrayList<>(52);
-    private final List<Direction> trickLeaderHistory = new ArrayList<>(13);
+    private final List<Card> history;
+    private final List<Direction> trickLeaderHistory;
     private final BitSet playedCards;
+
+
+    private final Map<Integer, Direction> cardIndexToHolder;
 
     public static Board of(Hand north, Hand south, Hand east, Hand west, TrumpSuit trumpSuit, Direction lead) {
         Map<Direction, Hand> hands = new EnumMap<>(Direction.class);
@@ -46,6 +52,30 @@ public class Board {
                 .flatMap(Collection::stream)
                 .forEach(c -> playedCards.set(c.index, false));
         this.tricksAvailable = hands.get(lead).allCards().size();
+        this.cardsRemaining = hands.values().stream().map(Hand::allCards).mapToInt(Collection::size).sum();
+        this.cardIndexToHolder = new HashMap<>();
+        hands.forEach((dir, hand) -> {
+            hand.allCards().forEach(card -> cardIndexToHolder.put(card.index, dir));
+        });
+        this.trickLeaderHistory = new ArrayList<>(13);
+        this.history = new ArrayList<>(52);
+    }
+
+    public Board(Board toClone) {
+        this.hands = new EnumMap<>(toClone.hands);
+        this.trickEvaluator = toClone.trickEvaluator;
+        this.trumpSuit = toClone.trumpSuit;
+        this.lead = toClone.lead;
+        this.currentTrick = new ArrayList<>(toClone.currentTrick);
+        this.declarer = toClone.declarer;
+        this.nsTricks = toClone.nsTricks;
+        this.ewTricks = toClone.ewTricks;
+        this.playedCards = (BitSet) toClone.playedCards.clone();
+        this.tricksAvailable = toClone.tricksAvailable;
+        this.cardsRemaining = toClone.cardsRemaining;
+        this.cardIndexToHolder = new HashMap<>(toClone.cardIndexToHolder);
+        this.trickLeaderHistory = new ArrayList<>(toClone.trickLeaderHistory);
+        this.history = new ArrayList<>(toClone.history);
     }
 
     public List<Card> nextPlays() {
@@ -89,6 +119,8 @@ public class Board {
         history.add(cardPlayed);
         currentTrick.add(cardPlayed);
         playedCards.set(cardPlayed.index);
+        cardIndexToHolder.remove(cardPlayed.index);
+        cardsRemaining--;
         hands.get(lead).makePlay(cardPlayed);
         if (currentTrick.size() == 4) {
             completeTrick();
@@ -115,7 +147,9 @@ public class Board {
         }
         Card undone = history.remove(lastMoveIndex);
         playedCards.clear(undone.index);
+        cardsRemaining++;
         hands.get(lead).undoPlay(undone);
+        cardIndexToHolder.put(undone.index, lead);
         return undone;
     }
 
@@ -147,6 +181,10 @@ public class Board {
         return (direction == Direction.NORTH || direction == Direction.SOUTH) ? nsTricks : ewTricks;
     }
 
+    public Map<Integer, Direction> getCardIndexToHolder() {
+        return cardIndexToHolder;
+    }
+
     public boolean offenseOnLead() {
         return declarer == lead || declarer.partner() == lead;
     }
@@ -175,12 +213,42 @@ public class Board {
         return currentTrick;
     }
 
-    public int getTricksAvailable(){
+    public int getTricksAvailable() {
         return tricksAvailable;
     }
 
+    public int getCardsRemaining() {
+        return cardsRemaining;
+    }
 
-    private static class TrickEvaluator {
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Board board = (Board) o;
+        return tricksAvailable == board.tricksAvailable &&
+                nsTricks == board.nsTricks &&
+                ewTricks == board.ewTricks &&
+                cardsRemaining == board.cardsRemaining &&
+                hands.equals(board.hands) &&
+                trumpSuit == board.trumpSuit &&
+                declarer == board.declarer &&
+                lead == board.lead &&
+                currentTrick.equals(board.currentTrick) &&
+                history.equals(board.history) &&
+                trickLeaderHistory.equals(board.trickLeaderHistory) &&
+                playedCards.equals(board.playedCards) &&
+                cardIndexToHolder.equals(board.cardIndexToHolder);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(hands, trumpSuit, declarer, tricksAvailable, nsTricks, ewTricks, cardsRemaining, lead, currentTrick, history, trickLeaderHistory, playedCards, cardIndexToHolder);
+    }
+
+
+    private static class TrickEvaluator implements Serializable {
+        private static final long serialVersionUID = 1L;
         private final Comparator<Card> cardComparator;
         private Suit suitLed;
 
@@ -204,5 +272,28 @@ public class Board {
             }
             return lastDirection.offset(offset);
         }
+    }
+
+    public String toLogString(){
+        StringBuilder sb = new StringBuilder().append("\n");
+        sb.append("tricksAvailable:").append(tricksAvailable).append("\n");
+        sb.append("nsTricks:").append(nsTricks).append("\n");
+        sb.append("ewTricks:").append(ewTricks).append("\n");
+        sb.append("cardsRemaining:").append(cardsRemaining).append("\n");
+        sb.append("trumpSuit:").append(trumpSuit).append("\n");
+        sb.append("declarer:").append(declarer).append("\n");
+        sb.append("lead:").append(lead).append("\n");
+        sb.append("lead:").append(lead).append("\n");
+        sb.append("currentTrick:").append(currentTrick).append("\n");
+        sb.append("history:").append(history).append("\n");
+        sb.append("trickLeaderHistory:").append(trickLeaderHistory).append("\n");
+        for (Direction direction : Direction.values()){
+            sb.append(direction).append("\n");
+            for (Suit suit: Suit.values()){
+                sb.append(hands.get(direction).holding(suit));
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }

@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class BoardTest {
 
     @Test
@@ -31,5 +33,17 @@ public class BoardTest {
             System.out.println("undid " + undone);
         }
         System.out.println(board);
+    }
+
+    @Test
+    void testClone(){
+        Hand northHand = new BitSetHand("", "", "A K 6", "A 10");
+        Hand southHand = new BitSetHand("", "A K Q J", "", "2");
+        Hand eastHand = new BitSetHand("3", "", "Q J 10", "K");
+        Hand westHand = new BitSetHand("A K", "4 3", "2", "");
+        Board board = Board.of(northHand, southHand, eastHand, westHand, TrumpSuit.SPADES, Direction.EAST);
+        Board clone = new Board(board);
+        assertEquals(board, clone);
+
     }
 }

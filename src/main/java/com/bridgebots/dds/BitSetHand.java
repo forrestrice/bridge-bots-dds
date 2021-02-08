@@ -1,12 +1,14 @@
 package com.bridgebots.dds;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
 import static com.bridgebots.dds.DealStringUtils.parseSuitString;
 
-public class BitSetHand implements Hand {
+public class BitSetHand implements Hand, Serializable {
+    private static final long serialVersionUID = 1L;
     private final BitSet bitSet = new BitSet(52);
 
     public BitSetHand(List<Rank> clubs, List<Rank> diamonds, List<Rank> hearts, List<Rank> spades) {
