@@ -23,6 +23,11 @@ public class ListHand implements Hand {
         this(parseSuitString(clubs), parseSuitString(diamonds), parseSuitString(hearts), parseSuitString(spades));
     }
 
+    public ListHand(ListHand listHand) {
+        this.ranksBySuit = new EnumMap<Suit, List<Rank>>(Suit.class);
+        listHand.ranksBySuit.forEach(ranksBySuit::put);
+    }
+
     //TODO this is broken with restricted next plays - cards are returned in reverse order
     @Override
     public List<Card> allCards() {
@@ -55,5 +60,10 @@ public class ListHand implements Hand {
     @Override
     public void undoPlay(Card card){
         ranksBySuit.get(card.suit).add(card.rank);
+    }
+
+    @Override
+    public Hand copy() {
+        return new ListHand(this);
     }
 }

@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
 
 import static com.bridgebots.dds.DealStringUtils.parseSuitString;
 
@@ -23,6 +24,15 @@ public class BitSetHand implements Hand, Serializable {
 
     public BitSetHand(String clubs, String diamonds, String hearts, String spades) {
         this(parseSuitString(clubs), parseSuitString(diamonds), parseSuitString(hearts), parseSuitString(spades));
+    }
+
+    @Override
+    public Hand copy(){
+        return new BitSetHand(this);
+    }
+
+    public BitSetHand(BitSetHand toCopy){
+        this.bitSet.or(toCopy.bitSet);
     }
 
     @Override
@@ -68,5 +78,18 @@ public class BitSetHand implements Hand, Serializable {
     @Override
     public void undoPlay(Card card) {
         bitSet.set(card.index);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BitSetHand that = (BitSetHand) o;
+        return bitSet.equals(that.bitSet);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(bitSet);
     }
 }

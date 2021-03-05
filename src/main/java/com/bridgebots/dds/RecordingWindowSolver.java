@@ -4,14 +4,17 @@ import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class RecordingWindowSolver implements Solver {
     private static final Logger LOG = LogManager.getLogger();
     private long nodesUsed = 0;
+    private long hitsWithoutTermination = 0;
     private final Function<Board, List<Card>> cardSelectionFunction;
     private final TranspositionTable<AlphaBetaResult> transpositionTable = new TranspositionTable<>();
 
@@ -42,11 +45,12 @@ public class RecordingWindowSolver implements Solver {
             }
         }
         LOG.info("Computed window result {} with {} nodes in {}", lowerBound, nodesUsed, timer.stop());
-        LOG.info("TranspositionTable stats: {} entries, {} queries, {} hits, {} hitrate",
+        LOG.info("TranspositionTable stats: {} entries, {} queries, {} hits, {} hitrate, {} hitsWithoutTermination",
                 transpositionTable.keyCount(),
                 transpositionTable.getQueryCount(),
                 transpositionTable.getHitCount(),
-                (float) transpositionTable.getHitCount() / transpositionTable.getQueryCount()
+                (float) transpositionTable.getHitCount() / transpositionTable.getQueryCount(),
+                hitsWithoutTermination
         );
         return lowerBound;
     }
@@ -63,89 +67,59 @@ public class RecordingWindowSolver implements Solver {
         if (board.getCardsRemaining() == 0) {
             return 0;
         }
-        /* wrong
-        if(board.getDeclarerTricks() > alpha || alpha > board.getDeclarerTricks() + board.getTricksAvailable()){
-            return 0;
-        }*/
-        if(beta <= 0 || board.getTricksAvailable() < beta){
+
+        //The maximizing player can always achieve at least 0 and can never achieve more than the tricks remaining
+        if (beta <= 0 || board.getTricksAvailable() < beta) {
             return 0;
         }
 
-
+        AlphaBetaResult cachedResult = null;
         if (board.getCurrentTrick().isEmpty()) {
-            AlphaBetaResult cachedResult = transpositionTable.get(board);
+            cachedResult = transpositionTable.get(board);
             if (cachedResult != null) {
-                /*
-                if (cachedResult.board != board) {
-                    LOG.debug("mismatched boards in TT HIT");
-                    LOG.debug("----CURRENT BOARD----");
-                    LOG.debug(board.toLogString());
-                    LOG.debug("----CACHED BOARD----");
-                    LOG.debug(cachedResult.board.toLogString());
-                    LOG.debug("--------------------");
-                }*/
-                //LOG.debug("TT hit at depth = {}, alpha={}, beta={}", depth, alpha, beta);
-                //If searching same alpha and beta, safe to return result
-                /*
-                if (cachedResult.alpha == alpha && cachedResult.beta == beta) {
-                    return cachedResult.result;
-                }*/
-                /*
-                if (cachedResult.result >= beta){
-                    return cachedResult.result;
-                }*/
-                /*
-                if (cachedResult.alpha == alpha && cachedResult.beta == beta) {
-                    return cachedResult.result;
-                } else {
-                    LOG.debug("mismatched alpha/beta={}/{}, cached alpha/beta={}/{}, results={}, declarerTricks={}",
-                            alpha, beta, cachedResult.alpha, cachedResult.beta, cachedResult.cardValues, board.getDeclarerTricks());
-                }*/
+                // Upper bound on declarer tricks remaining is alpha
+                if (cachedResult.upperBound <= alpha) {
+                    return cachedResult.upperBound;
+                }
+                if (cachedResult.lowerBound >= beta) {
+                    return cachedResult.lowerBound;
+                }
             }
         }
+
+        if (cachedResult != null) {
+            hitsWithoutTermination++;
+        }
+
         int initialAlpha = alpha;
         int initialBeta = beta;
         Map<Card, Integer> cardValues = new HashMap<>();
-        int value;
-        if (board.offenseOnLead()) {
-            value = -1;
-            for (Card card : cardSelectionFunction.apply(board)) {
-                board.makePlay(card);
-                int currentTrickValue = 0;
-                if (board.getCurrentTrick().isEmpty() && board.offenseOnLead()) {
-                    currentTrickValue = 1;
-                }
-                int cardResult = currentTrickValue + alphaBetaSolve(board, depth + 1, alpha - currentTrickValue, beta - currentTrickValue);
-                board.undoPlay();
-                cardValues.put(card, cardResult);
+        int value = board.offenseOnLead() ? -1 : 14;
+
+        for (Card card : cardSelectionFunction.apply(board)) {
+            board.makePlay(card);
+            int currentTrickValue = board.getCurrentTrick().isEmpty() && board.offenseOnLead() ? 1 : 0;
+            int cardResult = currentTrickValue + alphaBetaSolve(board, depth + 1, alpha - currentTrickValue, beta - currentTrickValue);
+            board.undoPlay();
+            cardValues.put(card, cardResult);
+            if (board.offenseOnLead()) {
                 value = Math.max(value, cardResult);
                 alpha = Math.max(alpha, value);
-                if (alpha >= beta) {
-                    break;
-                }
-            }
-            //LOG.debug("offense returns value={}, alpha={}, beta={}", value, alpha, beta);
-        } else {
-            value = 14;
-            for (Card card : cardSelectionFunction.apply(board)) {
-                board.makePlay(card);
-                int currentTrickValue = 0;
-                if (board.getCurrentTrick().isEmpty() && board.offenseOnLead()) {
-                    currentTrickValue = 1;
-                }
-                int cardResult = currentTrickValue + alphaBetaSolve(board, depth + 1, alpha - currentTrickValue, beta - currentTrickValue);
-                board.undoPlay();
+            } else {
                 value = Math.min(value, cardResult);
-                cardValues.put(card, cardResult);
                 beta = Math.min(beta, value);
-                if (alpha >= beta) {
-                    break;
-                }
             }
-            //LOG.debug("defense returns value={}, alpha={}, beta={}", value, alpha, beta);
+            if (alpha >= beta) {
+                break;
+            }
         }
+
         if (board.getCurrentTrick().isEmpty()) {
             AlphaBetaResult alphaBetaResult = new AlphaBetaResult(cardValues, initialAlpha, initialBeta, value, null);
+            if (cachedResult != null) {
+                alphaBetaResult = AlphaBetaResult.merge(alphaBetaResult, cachedResult);
+            }
+            //transpositionTable.merge(board, alphaBetaResult);
             transpositionTable.put(board, alphaBetaResult);
         }
         return value;
@@ -153,18 +127,39 @@ public class RecordingWindowSolver implements Solver {
 
 
     private static class AlphaBetaResult {
-        final Map<Card, Integer> cardValues;
-        final int alpha;
-        final int beta;
-        final int result;
         final Board board;
+        final int upperBound;
+        final int lowerBound;
+        final Map<Card, Integer> cardValues;
 
         AlphaBetaResult(Map<Card, Integer> cardValues, int alpha, int beta, int result, Board board) {
+            if (result <= alpha) {
+                upperBound = alpha;
+                lowerBound = 0;
+            }
+            // result >= beta is guaranteed because we are zero window solving
+            else {
+                lowerBound = beta;
+                upperBound = 14;
+            }
             this.cardValues = cardValues;
-            this.alpha = alpha;
-            this.beta = beta;
-            this.result = result;
             this.board = board;
+        }
+
+        AlphaBetaResult(Map<Card, Integer> cardValues, int upperBound, int lowerBound, Board board) {
+            this.cardValues = cardValues;
+            this.board = board;
+            this.upperBound = upperBound;
+            this.lowerBound = lowerBound;
+        }
+
+        public static AlphaBetaResult merge(AlphaBetaResult first, AlphaBetaResult second) {
+            //TODO combine card values
+            return new AlphaBetaResult(
+                    first.cardValues,
+                    Math.min(first.upperBound, second.upperBound),
+                    Math.max(first.lowerBound, second.lowerBound),
+                    first.board);
         }
     }
 }

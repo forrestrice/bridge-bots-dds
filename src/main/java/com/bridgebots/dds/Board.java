@@ -1,8 +1,18 @@
 package com.bridgebots.dds;
 
 
+import static java.util.stream.Collectors.toMap;
+
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class Board implements Serializable, Cloneable {
     private static final long serialVersionUID = 1L;
@@ -20,8 +30,6 @@ public class Board implements Serializable, Cloneable {
     private final List<Card> history;
     private final List<Direction> trickLeaderHistory;
     private final BitSet playedCards;
-
-
     private final Map<Integer, Direction> cardIndexToHolder;
 
     public static Board of(Hand north, Hand south, Hand east, Hand west, TrumpSuit trumpSuit, Direction lead) {
@@ -37,7 +45,11 @@ public class Board implements Serializable, Cloneable {
         return new Board(deal.getHands(), trumpSuit, lead, new ArrayList<>(3), lead.previous());
     }
 
-    private Board(Map<Direction, Hand> hands, TrumpSuit trumpSuit, Direction lead, List<Card> currentTrick, Direction declarer) {
+    private Board(Map<Direction, Hand> hands,
+                  TrumpSuit trumpSuit,
+                  Direction lead,
+                  List<Card> currentTrick,
+                  Direction declarer) {
         this.hands = hands;
         this.trickEvaluator = new TrickEvaluator(trumpSuit);
         this.trumpSuit = trumpSuit;
@@ -62,7 +74,9 @@ public class Board implements Serializable, Cloneable {
     }
 
     public Board(Board toClone) {
-        this.hands = new EnumMap<>(toClone.hands);
+        this.hands = new EnumMap<>(Direction.class);
+        toClone.hands.forEach((k,v) -> hands.put(k, v.copy()));
+
         this.trickEvaluator = toClone.trickEvaluator;
         this.trumpSuit = toClone.trumpSuit;
         this.lead = toClone.lead;
@@ -118,7 +132,7 @@ public class Board implements Serializable, Cloneable {
     public void makePlay(Card cardPlayed) {
         history.add(cardPlayed);
         currentTrick.add(cardPlayed);
-        playedCards.set(cardPlayed.index);
+        //playedCards.set(cardPlayed.index);
         cardIndexToHolder.remove(cardPlayed.index);
         cardsRemaining--;
         hands.get(lead).makePlay(cardPlayed);
@@ -140,13 +154,14 @@ public class Board implements Serializable, Cloneable {
             tricksAvailable++;
             int trickIndex = trickLeaderHistory.size() - 1;
             lead = trickLeaderHistory.remove(trickIndex).previous();
+            history.subList(history.size() - 4, history.size()).forEach(c -> playedCards.clear(c.index));
             currentTrick = new ArrayList<>(history.subList(lastMoveIndex - 3, lastMoveIndex));
         } else {
             currentTrick.remove(currentTrick.size() - 1);
             lead = lead.previous();
         }
         Card undone = history.remove(lastMoveIndex);
-        playedCards.clear(undone.index);
+        //playedCards.clear(undone.index);
         cardsRemaining++;
         hands.get(lead).undoPlay(undone);
         cardIndexToHolder.put(undone.index, lead);
@@ -162,6 +177,7 @@ public class Board implements Serializable, Cloneable {
             ewTricks++;
         }
         tricksAvailable--;
+        currentTrick.forEach(c -> playedCards.set(c.index));
         currentTrick.clear();
     }
 
@@ -243,7 +259,8 @@ public class Board implements Serializable, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(hands, trumpSuit, declarer, tricksAvailable, nsTricks, ewTricks, cardsRemaining, lead, currentTrick, history, trickLeaderHistory, playedCards, cardIndexToHolder);
+        return Objects.hash(hands, trumpSuit, declarer, tricksAvailable, nsTricks, ewTricks, cardsRemaining, lead,
+                currentTrick, history, trickLeaderHistory, playedCards, cardIndexToHolder);
     }
 
 
@@ -274,7 +291,7 @@ public class Board implements Serializable, Cloneable {
         }
     }
 
-    public String toLogString(){
+    public String toLogString() {
         StringBuilder sb = new StringBuilder().append("\n");
         sb.append("tricksAvailable:").append(tricksAvailable).append("\n");
         sb.append("nsTricks:").append(nsTricks).append("\n");
@@ -287,9 +304,9 @@ public class Board implements Serializable, Cloneable {
         sb.append("currentTrick:").append(currentTrick).append("\n");
         sb.append("history:").append(history).append("\n");
         sb.append("trickLeaderHistory:").append(trickLeaderHistory).append("\n");
-        for (Direction direction : Direction.values()){
+        for (Direction direction : Direction.values()) {
             sb.append(direction).append("\n");
-            for (Suit suit: Suit.values()){
+            for (Suit suit : Suit.values()) {
                 sb.append(hands.get(direction).holding(suit));
             }
             sb.append("\n");

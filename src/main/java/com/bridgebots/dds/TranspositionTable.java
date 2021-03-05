@@ -1,16 +1,22 @@
 package com.bridgebots.dds;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 
 public class TranspositionTable<V> {
     private int queryCount = 0;
     private int hitCount = 0;
 
 
-    private Map<TTKey, V> table = new HashMap<>();
+    private Map<TTKey, V> table = new ConcurrentHashMap<>();
 
     public void put(Board board, V value){
         table.put(calculateKey(board), value);
+    }
+
+    public void merge(Board board, V value, BiFunction<V,V,V> mergeFunction) {
+        table.merge(calculateKey(board), value, mergeFunction);
     }
 
     public V get(Board board){
@@ -50,6 +56,8 @@ public class TranspositionTable<V> {
     public int getHitCount() {
         return hitCount;
     }
+
+
 
     public static class TTKey {
         final Map<Suit, List<Direction>> relativeRanks;

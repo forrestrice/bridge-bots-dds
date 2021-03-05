@@ -12,4 +12,6 @@ public interface Hand {
     void makePlay(Card cardPlayed);
 
     void undoPlay(Card card);
+
+    Hand copy();
 }
