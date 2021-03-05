@@ -15,10 +15,6 @@ public class TranspositionTable<V> {
         table.put(calculateKey(board), value);
     }
 
-    public void merge(Board board, V value, BiFunction<V,V,V> mergeFunction) {
-        table.merge(calculateKey(board), value, mergeFunction);
-    }
-
     public V get(Board board){
         queryCount++;
         V result = table.get(calculateKey(board));
